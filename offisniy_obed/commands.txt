@@ -1,0 +1,11 @@
+python -m venv venv
+venv\Scripts\activate
+
+pip install fastapi sqlalchemy[asyncio] aiosqlite pydantic
+
+pip install uvicorn[standard]
+
+pip install pydantic[email]
+
+
+uvicorn main:app --reload
