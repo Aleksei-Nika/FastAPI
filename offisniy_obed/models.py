@@ -33,8 +33,8 @@ class Session(Base):
     deadline: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # связи
-    creator: Mapped['User'] = relationship('User', back_populates='created_sessions')
-    menu_items: Mapped[list["MenuItem"]] = relationship('MenuItem', back_populates='session')
+    creator: Mapped['User'] = relationship('User', back_populates='created_sessions', lazy='selectin')
+    menu_items: Mapped[list["MenuItem"]] = relationship('MenuItem', back_populates='session', lazy='selectin')
 
 class MenuItem(Base):
     __tablename__ = 'menu_items'

@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./offisniy_obed
+    container_name: office_lunch_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app
+    restart: always
+  
+  frontend:
+    build: ./lunch-api-test
+    container_name: office_lunch_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  backend_data: {}

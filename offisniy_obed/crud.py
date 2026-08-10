@@ -65,3 +65,84 @@ async def update_session_status(db: AsyncSession, session_id: int, new_status: S
     await db.flush()
     await db.refresh(session)
     return session
+
+# CRUD для меню
+async def add_menu_item(db: AsyncSession, session_id: int, items: list[MenuItemCreate])->list[MenuItem]:
+    session = await get_session_by_id(db, session_id)
+    now = datetime.now()
+    
+    if session.status != SessionStatus.active:
+        raise HTTPException(status_code=400, detail='Нельзя добавить меню в неактивную сессию')
+    if now >= session.deadline:
+        raise HTTPException(status_code=400, detail='Дедлайн сессии уже наступил')
+    
+    created_items = []
+    for item in items:
+        new_item = MenuItem(session_id = session_id, name = item.name, price=item.price)
+        db.add(new_item)
+        created_items.append(new_item)
+    
+    await db.flush() #для получения id
+    for item in created_items:
+        await db.refresh(item)
+    return created_items
+
+#CRUD для заказов
+async def get_menu_item_by_id(db: AsyncSession, menu_item_id: int) -> MenuItem:
+    result = await db.execute(select(MenuItem).where(MenuItem.id == menu_item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code = 404, detail=f'Блюдо с id{menu_item_id} ненайдено')
+    return item
+
+async def add_order_item(db: AsyncSession, data: OrderItemCreate) -> OrderItem:
+    await get_user_by_id(db, data.user_id)
+    menu_item = await get_menu_item_by_id(db, data.menu_item_id)
+    session = await get_session_by_id(db, menu_item.session_id)
+    if session.status != SessionStatus.active:
+        raise HTTPException(status_code=400, detail='Нельзя добавить меню в неактивную сессию')
+    if datetime.now() >= session.deadline:
+            raise HTTPException(status_code=400, detail='Дедлайн сессии уже наступил')
+    
+    result = await db.execute(
+        select(OrderItem)
+        .join(MenuItem, OrderItem.menu_item_id == MenuItem.id)
+        .where(
+            OrderItem.user_id == data.user_id,
+            OrderItem.menu_item_id == data.menu_item_id,
+            MenuItem.session_id == menu_item.session_id
+        )
+    )
+    existing_item = result.scalar_one_or_none()
+    if existing_item:
+        existing_item.quantity += data.quantity
+        await db.flush()
+        await db.refresh(existing_item)
+        return existing_item
+    else:
+        new_order = OrderItem(
+            user_id=data.user_id,
+            menu_item_id = data.menu_item_id,
+            quantity = data.quantity
+        )
+        await db.flush()
+        await db.refresh(new_order)
+        return new_order
+    
+# Удаление позиции заказа
+async def get_order_item_by_id(db: AsyncSession, order_item_id: int) -> OrderItem:
+    result = await db.execute(select(OrderItem).where(OrderItem.id == order_item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code = 404, detail=f'Заказ с id{order_item_id} ненайден')
+    return item
+
+async def delete_order_item(db: AsyncSession, order_item_id:int) -> dict:
+    order_item = await get_order_item_by_id(db, order_item_id)
+    menu_item = await get_menu_item_by_id(db, order_item.menu_item_id)
+    session = await get_session_by_id(db, menu_item.session_id)
+    if datetime.now() >= session.deadline:
+        raise HTTPException(status_code=400, detail='Дедлайн сессии уже наступил')
+    await db.delete(order_item)
+    await db.flush()
+    return {'detail': 'Позация успешно удалена'}            

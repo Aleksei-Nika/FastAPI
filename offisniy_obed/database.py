@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, Asyn
 from sqlalchemy.orm import DeclarativeBase
 import os 
 
-DATABASE_URL = f'sqlite+aiosqlite:///{os.path.join(os.path.dirname(__file__), 'office_lunch.db')}'
+DATABASE_URL = f"sqlite+aiosqlite:///{os.path.join(os.path.dirname(__file__), 'office_lunch.db')}"
 
 engine = create_async_engine(
     DATABASE_URL,
