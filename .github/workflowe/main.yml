@@ -1,0 +1,31 @@
+name: FastAPI & React CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  test-backend:
+    name: Run Python Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./offisniy_obed
+      
+      steps:
+        - name: Checkout code
+          users: actions/checkout@v4
+
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.13"
+        
+        - name: install dependencies
+          run: pip install -r requirements.txt
+
+        - name: Run Pytest
+          run: pytest -v
